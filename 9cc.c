@@ -171,7 +171,6 @@ typedef enum {
   ND_NUM, // Integer
 } NodeKind;
 
-
 // AST node type (抽象構文木のノードの型)
 typedef struct Node Node;
 struct Node {
@@ -232,14 +231,14 @@ Node *relational() {
   Node *node = add();
 
   for (;;) {
-    if (consume("<="))
-      node = new_binary(ND_LE, node, add());
-    else if (consume("<"))
+    if (consume("<"))
       node = new_binary(ND_LT, node, add());
-    else if (consume(">=")) // >= と > は左辺と右辺を入れ替え使いまわす
-      node = new_binary(ND_LE, add(), node);
-    else if (consume(">"))
+    else if (consume("<="))
+      node = new_binary(ND_LE, node, add());
+    else if (consume(">")) // >= と > は左辺と右辺を入れ替え使いまわす
       node = new_binary(ND_LT, add(), node);
+    else if (consume(">="))
+      node = new_binary(ND_LE, add(), node);
     else
       return node;
   }
@@ -341,14 +340,14 @@ void gen(Node *node) {
     printf("  setne al\n"); // 違う場合に1がセットされる (not equal)
     printf("  movzb rax, al\n");
     break;
-  case ND_LE:
-    printf("  cmp rax, rdi\n");
-    printf("  setle al\n"); // 小さい場合に1がセットされる (set lighter or equal)
-    printf("  movzb rax, al\n");
-    break;
   case ND_LT:
     printf("  cmp rax, rdi\n");
     printf("  setl al\n"); // 小さい場合に1がセットされる (set lighter)
+    printf("  movzb rax, al\n");
+    break;
+  case ND_LE:
+    printf("  cmp rax, rdi\n");
+    printf("  setle al\n"); // 小さい場合に1がセットされる (set lighter or equal)
     printf("  movzb rax, al\n");
     break;
   }

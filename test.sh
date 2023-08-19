@@ -19,9 +19,9 @@ assert() {
 
 make
 
-assert 3 'a=3;'
-assert 3 'a=b=3;'
-assert 9 'a=b=2 * 4 + 1;'
+assert 3 'foo=3;'
+assert 3 'a=b=foo=3;'
+assert 9 'foo=bar=2 * 4 + 1;'
 
 assert 0 '0;'
 assert 42 '42;'

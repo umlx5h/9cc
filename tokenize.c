@@ -111,7 +111,19 @@ Token *tokenize() {
 
     // Identifier
     if ('a' <= *p && *p <= 'z') {
-      cur = new_token(TK_IDENT, cur, p++, 1);
+      int len = 1;
+      char *ident = p;
+      p++;
+
+      for (;; p++) {
+        if ('a' <= *p && *p <= 'z' || isdigit(*p)) {
+          len++;
+        } else {
+          break;
+        }
+      }
+
+      cur = new_token(TK_IDENT, cur, ident, len);
       continue;
     }
 

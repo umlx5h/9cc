@@ -2,13 +2,16 @@
 
 // 生成規則 (EBNF)
 
-// expr       = equality
+// program    = stmt*
+// stmt       = expr ";"
+// expr       = assign
+// assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | "(" expr ")"
+// primary    = num | ident | "(" expr ")"
 
 Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
@@ -29,7 +32,17 @@ Node *new_num(int val) {
   return node;
 }
 
+Node *new_lvar(char name) {
+  Node *node = new_node(ND_LVAR);
+  node->kind = ND_LVAR;
+  node->offset = (name - 'a' + 1) * 8;
+  // node->name = name;
+  return node;
+}
+
+Node *stmt();
 Node *expr();
+Node *assign();
 Node *equality();
 Node *relational();
 Node *add();
@@ -37,9 +50,35 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-// expr = equality
+Node *code[100];
+
+// program = stmt*
+void program() {
+  int i = 0;
+  while (!at_eof())
+    code[i++] = stmt();
+  code[i] = NULL;
+}
+
+// stmt = expr ";"
+Node *stmt() {
+  Node *node = expr();
+  expect(";");
+
+  return node;
+}
+
+// expr = assign
 Node *expr() {
-  return equality();
+  return assign();
+}
+
+// assign = equality ("=" assign)?
+Node *assign() {
+  Node *node = equality();
+  if (consume("="))
+    node = new_binary(ND_ASSIGN, node, assign());
+  return node;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
@@ -112,7 +151,7 @@ Node *unary() {
   return primary();
 }
 
-// primary = "(" expr ")" | num
+// primary = "(" expr ")" | ident | num
 Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -120,6 +159,10 @@ Node *primary() {
     expect(")");
     return node;
   }
+
+  Token *tok = consume_ident();
+  if (tok)
+    return new_lvar(*tok->str);
 
   // そうでなければ数値のはず
   return new_num(expect_number());

@@ -1,12 +1,12 @@
 #include "chibicc.h"
 
 // ローカル変数
-LVar *locals;
+Var *locals;
 
-// 変数を名前で検索する。見つからなかった場合はNULLを返す。
-LVar *find_lvar(Token *tok) {
-  for (LVar *var = locals; var; var = var->next)
-    if (var->len == tok->len && !memcmp(tok->str, var->name, var->len))
+// Find a local variable by name.
+Var *find_var(Token *tok) {
+  for (Var *var = locals; var; var = var->next)
+    if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
       return var;
   return NULL;
 }
@@ -14,8 +14,8 @@ LVar *find_lvar(Token *tok) {
 // 生成規則 (EBNF)
 
 // program    = stmt*
-// stmt       = expr ";"
-//            | "return" expr ";"
+// stmt       =  "return" expr ";"
+//            | expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -38,10 +38,30 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs) {
   return node;
 }
 
+Node *new_unary(NodeKind kind, Node *expr) {
+  Node *node = new_node(kind);
+  node->lhs = expr;
+  return node;
+}
+
 Node *new_num(int val) {
   Node *node = new_node(ND_NUM);
   node->val = val;
   return node;
+}
+
+Node *new_var(Var *var) {
+  Node *node = new_node(ND_VAR);
+  node->var = var;
+  return node;
+}
+
+Var *push_var(char *name) {
+  Var *var = calloc(1, sizeof(Var));
+  var->next = locals;
+  var->name = name;
+  locals = var;
+  return var;
 }
 
 Node *stmt();
@@ -54,31 +74,35 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-Node *code[100];
-
 // program = stmt*
-void program() {
-  int i = 0;
-  while (!at_eof())
-    code[i++] = stmt();
-  code[i] = NULL;
-}
+Program *program() {
+  locals = NULL;
 
-// stmt = expr ";"
-//      | "return" expr ";"
-Node *stmt() {
-  Node *node;
+  Node head;
+  head.next = NULL;
+  Node *cur = &head;
 
-  if (token->kind == TK_RETURN) {
-    token = token->next;
-
-    node = calloc(1, sizeof(Node));
-    node->kind = ND_RETURN;
-    node->lhs = expr();
-  } else {
-    node = expr();
+  while (!at_eof()) {
+    cur->next = stmt();
+    cur = cur->next;
   }
 
+  Program *prog = calloc(1, sizeof(Program));
+  prog->node = head.next;
+  prog->locals = locals;
+  return prog;
+}
+
+// stmt = "return" expr ";"
+//      | expr ";"
+Node *stmt() {
+  if (consume("return")) {
+    Node *node = new_unary(ND_RETURN, expr());
+    expect(";");
+    return node;
+  }
+
+  Node *node = new_unary(ND_EXPR_STMT, expr());
   expect(";");
   return node;
 }
@@ -177,26 +201,10 @@ Node *primary() {
 
   Token *tok = consume_ident();
   if (tok) {
-    Node *node = calloc(1, sizeof(Node));
-    node->kind = ND_LVAR;
-
-    LVar *lvar = find_lvar(tok);
-    if (lvar) {
-      node->offset = lvar->offset;
-    } else {
-      lvar = calloc(1, sizeof(LVar));
-      // リストの先頭に突っ込む
-      lvar->next = locals;
-      lvar->name = tok->str;
-      lvar->len = tok->len;
-      if (locals == NULL)
-        lvar->offset = 8;
-      else
-        lvar->offset = locals->offset + 8;
-      node->offset = lvar->offset;
-      locals = lvar;
-    }
-    return node;
+    Var *var = find_var(tok);
+    if (!var)
+      var = push_var(strndup(tok->str, tok->len));
+    return new_var(var);
   }
 
   // そうでなければ数値のはず

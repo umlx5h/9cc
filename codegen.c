@@ -1,42 +1,52 @@
 #include "chibicc.h"
 
-void gen_lval(Node *node) {
-  if (node->kind != ND_LVAR)
-    error("代入の左辺値が変数ではありません");
-  
-  printf("  mov rax, rbp\n");
-  printf("  sub rax, %d\n", node->offset);
+// Pushes the given node's address to the stack.
+void gen_addr(Node *node) {
+  if (node->kind == ND_VAR) {
+    printf("  lea rax, [rbp-%d]\n", node->var->offset);
+    printf("  push rax\n");
+    return;
+  }
+
+  error("not an lvalue");
+}
+
+void load() {
+  printf("  pop rax\n");
+  printf("  mov rax, [rax]\n");
   printf("  push rax\n");
 }
 
+void store() {
+  printf("  pop rdi\n");
+  printf("  pop rax\n");
+  printf("  mov [rax], rdi\n");
+  printf("  push rdi\n");
+}
 
+// Generate code for a given node.
 void gen(Node *node) {
   switch (node->kind) {
-  case ND_RETURN:
-    gen(node->lhs);
-    printf("  pop rax\n");
-    printf("  mov rsp, rbp\n");
-    printf("  pop rbp\n");
-    printf("  ret\n");
-    exit(0);
-
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;
-  case ND_LVAR: // 右辺に変数が現れた時にメモリからレジスタにコピーして1つの値にしてスタックにpush
-    gen_lval(node);
-    printf("  pop rax\n");
-    printf("  mov rax, [rax]\n");
-    printf("  push rax\n");
+  case ND_EXPR_STMT:
+    gen(node->lhs);
+    printf("  add rsp, 8\n"); // 式の評価結果としてスタックに一つの値が残っているのでポップしておく (rspを加算する)
+    return;
+  case ND_VAR: // 右辺に変数が現れた時にメモリからレジスタにコピーして1つの値にしてスタックにpush
+    gen_addr(node);
+    load();
     return;
   case ND_ASSIGN:
-    gen_lval(node->lhs);
+    gen_addr(node->lhs);
     gen(node->rhs);
-
-    printf("  pop rdi\n");
+    store();
+    return;
+  case ND_RETURN:
+    gen(node->lhs);
     printf("  pop rax\n");
-    printf("  mov [rax], rdi\n");
-    printf("  push rdi\n");
+    printf("  jmp .Lreturn\n");
     return;
   }
 
@@ -90,17 +100,24 @@ void gen(Node *node) {
   printf("  push rax\n");
 }
 
-void codegen(Node *node) {
+void codegen(Program *prog) {
   // Print out the first half of assembly.
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
   printf("main:\n");
 
-  // Traverse the AST to emit assembly.
-  gen(node);
+  // Prologue
+  printf("  push rbp\n");
+  printf("  mov rbp, rsp\n");
+  printf("  sub rsp, %d\n", prog->stack_size);
 
-  // A result must be at the top of the stack, so pop it
-  // to RAX to make it a program exit code.
-  printf("  pop rax\n");
+  // Emit code
+  for (Node *node = prog->node; node; node = node->next)
+    gen(node);
+
+  // Epilogue
+  printf(".Lreturn:\n");
+  printf("  mov rsp, rbp\n");
+  printf("  pop rbp\n");
   printf("  ret\n");
 }

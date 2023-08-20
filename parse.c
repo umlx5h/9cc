@@ -15,6 +15,7 @@ LVar *find_lvar(Token *tok) {
 
 // program    = stmt*
 // stmt       = expr ";"
+//            | "return" expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -64,10 +65,21 @@ void program() {
 }
 
 // stmt = expr ";"
+//      | "return" expr ";"
 Node *stmt() {
-  Node *node = expr();
-  expect(";");
+  Node *node;
 
+  if (token->kind == TK_RETURN) {
+    token = token->next;
+
+    node = calloc(1, sizeof(Node));
+    node->kind = ND_RETURN;
+    node->lhs = expr();
+  } else {
+    node = expr();
+  }
+
+  expect(";");
   return node;
 }
 

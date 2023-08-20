@@ -11,6 +11,7 @@
 
 typedef enum {
   TK_RESERVED, // Keywords or punctuators
+  TK_RETURN,   // return
   TK_IDENT,    // Identifiers
   TK_NUM,      // Integer literals
   TK_EOF,      // End-of-file markers
@@ -65,6 +66,7 @@ typedef enum {
   ND_ASSIGN, // =
   ND_LVAR,   // Local variable
   ND_NUM,    // Integer
+  ND_RETURN, // return
 } NodeKind;
 
 // AST node type (抽象構文木のノードの型)

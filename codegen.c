@@ -32,11 +32,6 @@ void gen(Node *node) {
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;
-  case ND_BLOCK:
-    for (int i = 0; i < node->numBlocks; i++) {
-      gen(node->blocks[i]);
-    }
-    return;
   case ND_EXPR_STMT:
     gen(node->lhs);
     printf("  add rsp, 8\n"); // 式の評価結果としてスタックに一つの値が残っているのでポップしておく (rspを加算する)
@@ -102,6 +97,10 @@ void gen(Node *node) {
     printf(".Lend%d:\n", seq);
     return;
   }
+  case ND_BLOCK:
+    for (Node *n = node->body; n; n = n->next)
+      gen(n);
+    return;
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");

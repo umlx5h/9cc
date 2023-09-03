@@ -68,8 +68,8 @@ typedef enum {
   ND_IF,        // "if"
   ND_WHILE,     // "while"
   ND_FOR,       // "for"
+  ND_BLOCK,     // { ... }
   ND_EXPR_STMT, // Expression statement
-  ND_BLOCK,     // Block
   ND_VAR,       // Variable
   ND_NUM,       // Integer
 } NodeKind;
@@ -90,8 +90,8 @@ struct Node {
   Node *init;    // Used if kind == ND_FOR
   Node *inc;     // Used if kind == ND_FOR
 
-  int numBlocks; // number of 'blocks'
-  Node **blocks;
+  // Block
+  Node *body;
 
   Var *var;      // Used if kind == ND_VAR
   int val;       // Used if kind == ND_NUM

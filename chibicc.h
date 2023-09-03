@@ -81,9 +81,10 @@ struct Node {
   Node *lhs;     // Left-hand side
   Node *rhs;     // Right-hand side
 
-  Node *cond; // "if", "while"
-  Node *then; // "if", "while"
-  Node *els;  // "if"
+  // "if" or "while" statement
+  Node *cond;
+  Node *then;
+  Node *els;     // Used if kind == ND_IF
 
   Var *var;      // Used if kind == ND_VAR
   int val;       // Used if kind == ND_NUM

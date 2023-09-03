@@ -1,5 +1,9 @@
 #include "chibicc.h"
 
+//
+// Tokenizer
+//
+
 // Input program
 char *user_input;
 // Current token

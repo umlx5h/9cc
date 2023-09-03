@@ -19,6 +19,7 @@ Var *find_var(Token *tok) {
 //            | "while" "(" expr ")" stmt
 //            | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //            | expr ";"
+//            | "{" stmt* "}"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -105,10 +106,25 @@ Node *read_expr_stmt() {
 //      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //      | expr ";"
+//      | "{" stmt* "}"
 Node *stmt() {
   if (consume("return")) {
     Node *node = new_unary(ND_RETURN, expr());
     expect(";");
+    return node;
+  }
+
+  if (consume("{")) {
+    Node *node = new_node(ND_BLOCK);
+    
+    while (!consume("}")) {
+      node->numBlocks++;
+      Node *s = stmt();
+      
+      node->blocks = realloc(node->blocks, node->numBlocks * sizeof(Node*));
+      node->blocks[node->numBlocks - 1] = s;
+    }
+
     return node;
   }
 

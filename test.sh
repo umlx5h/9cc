@@ -76,4 +76,7 @@ assert 2 'if (1) return 2; else return 3;'
 
 assert 150 'a=10; if (1) a = a + 5; else a = a + 10; if (0) return a + 10; else a * 10;'
 
+# while
+assert 10 'i=0; while(i<10) i=i+1; return i;'
+
 echo OK

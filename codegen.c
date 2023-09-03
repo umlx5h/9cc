@@ -67,6 +67,18 @@ void gen(Node *node) {
     }
     return;
   }
+  case ND_WHILE: {
+    int seq = labelseq++;
+    printf(".Lbegin%d:\n", seq);
+    gen(node->cond);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je  .Lend%d\n", seq);
+    gen(node->then);
+    printf("  jmp .Lbegin%d\n", seq);
+    printf(".Lend%d:\n", seq);
+    return;
+  }
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
@@ -96,7 +108,7 @@ void gen(Node *node) {
     // RDX+RAXの128ビット整数をRDIで割り、商をRAXに, 余りをRDXにセット
     printf("  idiv rdi\n");
     break;
-  case ND_EQ:
+  case ND_EQ: // ==
     // cmpはフラグレジスタという特殊なレジスタに結果がセットされる
     printf("  cmp rax, rdi\n");
     // フラグレジスタの結果をal (raxの下位8ビット)にコピーする。seteは同じ場合は1が入る (equal)
@@ -104,17 +116,17 @@ void gen(Node *node) {
     // 下位8ビットより左の64ビットの余っている部分をゼロクリアする
     printf("  movzb rax, al\n");
     break;
-  case ND_NE:
+  case ND_NE: // !=
     printf("  cmp rax, rdi\n");
     printf("  setne al\n"); // 違う場合に1がセットされる (not equal)
     printf("  movzb rax, al\n");
     break;
-  case ND_LT:
+  case ND_LT: // <
     printf("  cmp rax, rdi\n");
     printf("  setl al\n"); // 小さい場合に1がセットされる (set lighter)
     printf("  movzb rax, al\n");
     break;
-  case ND_LE:
+  case ND_LE: // <=
     printf("  cmp rax, rdi\n");
     printf("  setle al\n"); // 小さい場合に1がセットされる (set lighter or equal)
     printf("  movzb rax, al\n");

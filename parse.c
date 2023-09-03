@@ -45,6 +45,13 @@ Node *new_unary(NodeKind kind, Node *expr) {
   return node;
 }
 
+Node *new_ternary(NodeKind kind, Node *lhs, Node *chs, Node *rhs) {
+  Node *node = new_node(kind);
+  node->lhs = lhs;
+  node->chs = chs;
+  node->rhs = rhs;
+}
+
 Node *new_num(int val) {
   Node *node = new_node(ND_NUM);
   node->val = val;
@@ -105,12 +112,21 @@ Node *stmt() {
   }
 
   if (consume("if")) {
-    // TODO: elseを表現するためには？
     expect("(");
-    Node *lhs = expr();
+    Node *e = expr();
     expect(")");
-    Node *node = new_binary(ND_IF, lhs, stmt());
-    return node;
+
+    Node *s = stmt();
+
+    if (consume("else")) {
+      Node *s_else = stmt();      
+
+      Node *node = new_ternary(ND_IF_ELSE, e, s, s_else);
+      return node;
+    } else {
+      Node *node = new_binary(ND_IF, e, s);
+      return node;
+    }
   }
 
   Node *node = new_unary(ND_EXPR_STMT, expr());

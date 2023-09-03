@@ -81,9 +81,8 @@ void gen(Node *node) {
   }
   case ND_FOR: {
     int seq = labelseq++;
-    if (node->init) {
+    if (node->init)
       gen(node->init);
-    }
     printf(".Lbegin%d:\n", seq);
     if (node->cond) {
       gen(node->cond);
@@ -92,9 +91,8 @@ void gen(Node *node) {
       printf("  je  .Lend%d\n", seq);
     }
     gen(node->then);
-    if (node->incr) {
-      gen(node->incr);
-    }
+    if (node->inc)
+      gen(node->inc);
     printf("  jmp .Lbegin%d\n", seq);
     printf(".Lend%d:\n", seq);
     return;

@@ -79,4 +79,8 @@ assert 150 'a=10; if (1) a = a + 5; else a = a + 10; if (0) return a + 10; else 
 # while
 assert 10 'i=0; while(i<10) i=i+1; return i;'
 
+# for
+assert 55 'i=0; j=0; for (i=0; i<=10; i=i+1) j=i+j; return j;'
+assert 3 'for (;;) return 3; return 5;'
+
 echo OK

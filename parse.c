@@ -17,6 +17,7 @@ Var *find_var(Token *tok) {
 // stmt       =  "return" expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "while" "(" expr ")" stmt
+//            | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 //            | expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
@@ -126,6 +127,25 @@ Node *stmt() {
     expect("(");
     node->cond = expr();
     expect(")");
+    node->then = stmt();
+    return node;
+  }
+
+  if (consume("for")) {
+    Node *node = new_node(ND_FOR);
+    expect("(");
+    if (!consume(";")) {
+      node->init = expr();
+      expect(";");
+    }
+    if (!consume(";")) {
+      node->cond = expr();
+      expect(";");
+    }
+    if (!consume(")")) {
+      node->incr = expr();
+      expect(")");
+    }
     node->then = stmt();
     return node;
   }

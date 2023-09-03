@@ -15,8 +15,8 @@ Var *find_var(Token *tok) {
 
 // program    = stmt*
 // stmt       =  "return" expr ";"
-//            | expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
+//            | expr ";"
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -43,13 +43,6 @@ Node *new_unary(NodeKind kind, Node *expr) {
   Node *node = new_node(kind);
   node->lhs = expr;
   return node;
-}
-
-Node *new_ternary(NodeKind kind, Node *lhs, Node *chs, Node *rhs) {
-  Node *node = new_node(kind);
-  node->lhs = lhs;
-  node->chs = chs;
-  node->rhs = rhs;
 }
 
 Node *new_num(int val) {
@@ -101,9 +94,13 @@ Program *program() {
   return prog;
 }
 
+Node *read_expr_stmt() {
+  return new_unary(ND_EXPR_STMT, expr());
+}
+
 // stmt = "return" expr ";"
-//      | expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | expr ";"
 Node *stmt() {
   if (consume("return")) {
     Node *node = new_unary(ND_RETURN, expr());
@@ -112,24 +109,17 @@ Node *stmt() {
   }
 
   if (consume("if")) {
+    Node *node = new_node(ND_IF);
     expect("(");
-    Node *e = expr();
+    node->cond = expr();
     expect(")");
-
-    Node *s = stmt();
-
-    if (consume("else")) {
-      Node *s_else = stmt();      
-
-      Node *node = new_ternary(ND_IF_ELSE, e, s, s_else);
-      return node;
-    } else {
-      Node *node = new_binary(ND_IF, e, s);
-      return node;
-    }
+    node->then = stmt();
+    if (consume("else"))
+      node->els = stmt();
+    return node;
   }
 
-  Node *node = new_unary(ND_EXPR_STMT, expr());
+  Node *node = read_expr_stmt();
   expect(";");
   return node;
 }

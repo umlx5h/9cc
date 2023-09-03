@@ -27,6 +27,15 @@ void store() {
 // Generate code for a given node.
 void gen(Node *node) {
   switch (node->kind) {
+  case ND_IF:
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je .L1\n");
+    gen(node->rhs);
+    printf(".L1:\n");
+    return;
+    
   case ND_NUM:
     printf("  push %d\n", node->val);
     return;

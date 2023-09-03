@@ -16,6 +16,7 @@ Var *find_var(Token *tok) {
 // program    = stmt*
 // stmt       =  "return" expr ";"
 //            | expr ";"
+//            | "if" "(" expr ")" stmt ("else" stmt)?
 // expr       = assign
 // assign     = equality ("=" assign)?
 // equality   = relational ("==" relational | "!=" relational)*
@@ -95,10 +96,20 @@ Program *program() {
 
 // stmt = "return" expr ";"
 //      | expr ";"
+//      | "if" "(" expr ")" stmt ("else" stmt)?
 Node *stmt() {
   if (consume("return")) {
     Node *node = new_unary(ND_RETURN, expr());
     expect(";");
+    return node;
+  }
+
+  if (consume("if")) {
+    // TODO: elseを表現するためには？
+    expect("(");
+    Node *lhs = expr();
+    expect(")");
+    Node *node = new_binary(ND_IF, lhs, stmt());
     return node;
   }
 

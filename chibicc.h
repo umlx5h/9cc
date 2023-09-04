@@ -5,8 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN(i, j) (((i) < (j)) ? (i) : (j))
-
 //
 // tokenize.c
 //
@@ -71,16 +69,14 @@ typedef enum {
   ND_WHILE,     // "while"
   ND_FOR,       // "for"
   ND_BLOCK,     // { ... }
+  ND_FUNCALL,   // Function call
   ND_EXPR_STMT, // Expression statement
   ND_VAR,       // Variable
-  ND_FUNC,      // Function call
   ND_NUM,       // Integer
 } NodeKind;
 
 // AST node type (抽象構文木のノードの型)
 typedef struct Node Node;
-// Function call
-typedef struct Func Func;
 
 struct Node {
   NodeKind kind; // Node kind
@@ -99,16 +95,12 @@ struct Node {
   // Block
   Node *body;
 
+  // Function call
+  char *funcname;
+  Node *args;
+
   Var *var;      // Used if kind == ND_VAR
   int val;       // Used if kind == ND_NUM
-
-  Func *func;    // Used if kind == ND_FUNC
-};
-
-struct Func {
-  char *name;
-  Node **args;
-  int argsLen;
 };
 
 typedef struct {

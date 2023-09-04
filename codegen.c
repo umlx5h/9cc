@@ -1,6 +1,7 @@
 #include "chibicc.h"
 
 int labelseq = 0;
+char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
 // Pushes the given node's address to the stack.
 void gen_addr(Node *node) {
@@ -101,44 +102,25 @@ void gen(Node *node) {
     for (Node *n = node->body; n; n = n->next)
       gen(n);
     return;
+  case ND_FUNCALL: {
+    // TODO: RSP 16-byte alignment
+    int nargs = 0;
+    for (Node *arg = node->args; arg; arg = arg->next) {
+      gen(arg);
+      nargs++;
+    }
+
+    for (int i = nargs - 1; i >= 0; i--)
+      printf("  pop %s\n", argreg[i]);
+
+    printf("  call %s\n", node->funcname);
+    printf("  push rax\n"); // 関数の返り値をスタックに積む
+    return;
+  }
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  jmp .Lreturn\n");
-    return;
-  case ND_FUNC:
-    // TODO: RSP 16-byte alignment
-
-    if (node->func->argsLen > 0) {
-      // pass argument as register
-      for (int i = 0; i < MIN(node->func->argsLen, 6); i++) {
-        gen(node->func->args[i]);
-        switch (i+1) {
-        case 1:
-          printf("  pop rdi\n");
-          break;
-        case 2:
-          printf("  pop rsi\n");
-          break;
-        case 3:
-          printf("  pop rdx\n");
-          break;
-        case 4:
-          printf("  pop rcx\n");
-          break;
-        case 5:
-          printf("  pop r8\n");
-          break;
-        case 6:
-          printf("  pop r9\n");
-          break;
-        }
-      }
-    }
-
-    printf("  call %s\n", node->func->name);
-    // 関数の返り値をスタックに積む
-    printf("  push rax\n");
     return;
   }
 

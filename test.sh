@@ -1,17 +1,25 @@
 #!/bin/bash
 
-init() {
-  make
-  gcc -c foo.c
+make
+
+cat <<EOF | gcc -xc -c -o tmp2.o -
+int ret3() { return 3; }
+int ret5() { return 5; }
+int add(int x, int y) { return x+y; }
+int sub(int x, int y) { return x-y; }
+
+int add6(int a, int b, int c, int d, int e, int f) {
+  return a+b+c+d+e+f;
 }
+EOF
 
 assert() {
   expected="$1"
   input="$2"
 
   ./chibicc "$input" > tmp.s
-  # gcc -static -o tmp tmp.s
-  gcc -o tmp tmp.s foo.o
+  # gcc -static -o tmp tmp.s tmp2.o
+  gcc -o tmp tmp.s tmp2.o
   ./tmp
   actual="$?"
 
@@ -97,12 +105,15 @@ assert 3 '{1; {2;} return 3;}'
 assert 2 '{1; {return 2;} return 3;}'
 
 # function call with no argument
-assert 3 'return foo();'
-assert 6 'a = foo(); return a * 2;'
+assert 3 'return ret3();'
+assert 5 'return ret5();'
+assert 6 'a = ret3(); return a * 2;'
 
 # function call with argument (1-6)
-assert 3 'return add2(1, 2);'
-assert 14 'four = 4; sum = add2(four, 3); return sum * 2;'
-assert 5 'return add2(foo(), 2);'
+assert 8 'return add(3, 5);'
+assert 2 'return sub(5, 3);'
+assert 21 'return add6(1, 2, 3, 4, 5, 6);'
+assert 14 'four = 4; sum = add(four, 3); return sum * 2;'
+assert 5 'return add(sub(5, 2), 2);'
 
 echo OK

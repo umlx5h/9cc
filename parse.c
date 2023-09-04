@@ -27,9 +27,8 @@ Var *find_var(Token *tok) {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num
-//            | ident ("(" ")")?
-//            | "(" expr ")"
+// primary    = "(" expr ")" | ident func-args? | num
+// func-args = "(" (assign ("," assign)*)? ")"
 
 Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
@@ -68,16 +67,6 @@ Var *push_var(char *name) {
   var->name = name;
   locals = var;
   return var;
-}
-
-Node *new_func(char *name, int len) {
-  Func *func = calloc(1, sizeof(Func));
-  func->name = strndup(name, len);
-  
-  Node *node = new_node(ND_FUNC);
-  node->func = func;
-
-  return node;
 }
 
 Node *stmt();
@@ -268,9 +257,22 @@ Node *unary() {
   return primary();
 }
 
-// primary = num
-//         | ident ("(" ")")?
-//         | "(" expr ")"
+// func-args = "(" (assign ("," assign)*)? ")"
+Node *func_args() {
+  if (consume(")"))
+    return NULL; // no argument
+
+  Node *head = assign();
+  Node *cur = head;
+  while (consume(",")) {
+    cur->next = assign();
+    cur = cur->next;
+  }
+  expect(")");
+  return head;
+}
+
+// primary = "(" expr ")" | ident func-args? | num
 Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -283,27 +285,16 @@ Node *primary() {
   if (tok) {
     if (consume("(")) {
       // function call
-      Node *node = new_func(tok->str, tok->len);
-
-      while (!consume(")")) {
-        Node *arg = expr();
-        node->func->argsLen++;
-        node->func->args = realloc(node->func->args, node->func->argsLen * sizeof(Node*));
-        node->func->args[node->func->argsLen - 1] = arg;
-
-        consume(",");
-      }
-      // expect(")");
-      
+      Node *node = new_node(ND_FUNCALL);
+      node->funcname = strndup(tok->str, tok->len);
+      node->args = func_args();
       return node;
-    } else {
-      // variable
-      Var *var = find_var(tok);
-      if (!var)
-        var = push_var(strndup(tok->str, tok->len));
-      return new_var(var);
     }
-
+    // variable
+    Var *var = find_var(tok);
+    if (!var)
+      var = push_var(strndup(tok->str, tok->len));
+    return new_var(var);
   }
 
   // そうでなければ数値のはず

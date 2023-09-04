@@ -1,11 +1,17 @@
 #!/bin/bash
+
+init() {
+  make
+  gcc -c foo.c
+}
+
 assert() {
   expected="$1"
   input="$2"
 
   ./chibicc "$input" > tmp.s
   # gcc -static -o tmp tmp.s
-  gcc -o tmp tmp.s
+  gcc -o tmp tmp.s foo.o
   ./tmp
   actual="$?"
 
@@ -17,7 +23,7 @@ assert() {
   fi
 }
 
-make
+init
 
 assert 0 'return 0;'
 assert 42 'return 42;'
@@ -89,5 +95,9 @@ assert 55 'i=0; j=0; while(i<=10) {j=i+j; i=i+1;} return j;'
 # block nest
 assert 3 '{1; {2;} return 3;}'
 assert 2 '{1; {return 2;} return 3;}'
+
+# function call with no argument
+assert 3 'return foo();'
+assert 6 'a = foo(); return a * 2;'
 
 echo OK

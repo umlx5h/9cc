@@ -27,7 +27,9 @@ Var *find_var(Token *tok) {
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-")? primary
-// primary    = num | ident | "(" expr ")"
+// primary    = num
+//            | ident ("(" ")")?
+//            | "(" expr ")"
 
 Node *new_node(NodeKind kind) {
   Node *node = calloc(1, sizeof(Node));
@@ -66,6 +68,16 @@ Var *push_var(char *name) {
   var->name = name;
   locals = var;
   return var;
+}
+
+Node *new_func(char *name, int len) {
+  Func *func = calloc(1, sizeof(Func));
+  func->name = strndup(name, len);
+  
+  Node *node = new_node(ND_FUNC);
+  node->func = func;
+
+  return node;
 }
 
 Node *stmt();
@@ -256,7 +268,9 @@ Node *unary() {
   return primary();
 }
 
-// primary = "(" expr ")" | ident | num
+// primary = num
+//         | ident ("(" ")")?
+//         | "(" expr ")"
 Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -267,10 +281,21 @@ Node *primary() {
 
   Token *tok = consume_ident();
   if (tok) {
-    Var *var = find_var(tok);
-    if (!var)
-      var = push_var(strndup(tok->str, tok->len));
-    return new_var(var);
+    if (consume("(")) {
+      // function call
+      // TODO: function argument
+      expect(")");
+      
+      Node *node = new_func(tok->str, tok->len);
+      return node;
+    } else {
+      // variable
+      Var *var = find_var(tok);
+      if (!var)
+        var = push_var(strndup(tok->str, tok->len));
+      return new_var(var);
+    }
+
   }
 
   // そうでなければ数値のはず

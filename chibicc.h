@@ -53,6 +53,12 @@ struct Var {
   int offset; // Offset from RBP
 };
 
+// Function call
+typedef struct Func Func;
+struct Func {
+  char *name;
+};
+
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD,       // +
@@ -71,6 +77,7 @@ typedef enum {
   ND_BLOCK,     // { ... }
   ND_EXPR_STMT, // Expression statement
   ND_VAR,       // Variable
+  ND_FUNC,      // Function call
   ND_NUM,       // Integer
 } NodeKind;
 
@@ -95,6 +102,8 @@ struct Node {
 
   Var *var;      // Used if kind == ND_VAR
   int val;       // Used if kind == ND_NUM
+
+  Func *func;    // Used if kind == ND_FUNC
 };
 
 typedef struct {

@@ -106,6 +106,12 @@ void gen(Node *node) {
     printf("  pop rax\n");
     printf("  jmp .Lreturn\n");
     return;
+  case ND_FUNC:
+    // TODO: RSP 16-byte alignment
+    printf("  call %s\n", node->func->name);
+    // 関数の返り値をスタックに積む
+    printf("  push rax\n");
+    return;
   }
 
   gen(node->lhs);

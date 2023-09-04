@@ -108,6 +108,34 @@ void gen(Node *node) {
     return;
   case ND_FUNC:
     // TODO: RSP 16-byte alignment
+
+    if (node->func->argsLen > 0) {
+      // pass argument as register
+      for (int i = 0; i < MIN(node->func->argsLen, 6); i++) {
+        gen(node->func->args[i]);
+        switch (i+1) {
+        case 1:
+          printf("  pop rdi\n");
+          break;
+        case 2:
+          printf("  pop rsi\n");
+          break;
+        case 3:
+          printf("  pop rdx\n");
+          break;
+        case 4:
+          printf("  pop rcx\n");
+          break;
+        case 5:
+          printf("  pop r8\n");
+          break;
+        case 6:
+          printf("  pop r9\n");
+          break;
+        }
+      }
+    }
+
     printf("  call %s\n", node->func->name);
     // 関数の返り値をスタックに積む
     printf("  push rax\n");

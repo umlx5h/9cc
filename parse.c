@@ -283,10 +283,18 @@ Node *primary() {
   if (tok) {
     if (consume("(")) {
       // function call
-      // TODO: function argument
-      expect(")");
-      
       Node *node = new_func(tok->str, tok->len);
+
+      while (!consume(")")) {
+        Node *arg = expr();
+        node->func->argsLen++;
+        node->func->args = realloc(node->func->args, node->func->argsLen * sizeof(Node*));
+        node->func->args[node->func->argsLen - 1] = arg;
+
+        consume(",");
+      }
+      // expect(")");
+      
       return node;
     } else {
       // variable

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define MIN(i, j) (((i) < (j)) ? (i) : (j))
+
 //
 // tokenize.c
 //
@@ -53,12 +55,6 @@ struct Var {
   int offset; // Offset from RBP
 };
 
-// Function call
-typedef struct Func Func;
-struct Func {
-  char *name;
-};
-
 // 抽象構文木のノードの種類
 typedef enum {
   ND_ADD,       // +
@@ -83,6 +79,9 @@ typedef enum {
 
 // AST node type (抽象構文木のノードの型)
 typedef struct Node Node;
+// Function call
+typedef struct Func Func;
+
 struct Node {
   NodeKind kind; // Node kind
   Node *next;    // Next node
@@ -104,6 +103,12 @@ struct Node {
   int val;       // Used if kind == ND_NUM
 
   Func *func;    // Used if kind == ND_FUNC
+};
+
+struct Func {
+  char *name;
+  Node **args;
+  int argsLen;
 };
 
 typedef struct {

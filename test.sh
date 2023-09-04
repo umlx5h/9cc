@@ -100,4 +100,9 @@ assert 2 '{1; {return 2;} return 3;}'
 assert 3 'return foo();'
 assert 6 'a = foo(); return a * 2;'
 
+# function call with argument (1-6)
+assert 3 'return add2(1, 2);'
+assert 14 'four = 4; sum = add2(four, 3); return sum * 2;'
+assert 5 'return add2(foo(), 2);'
+
 echo OK

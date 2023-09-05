@@ -1,5 +1,17 @@
 #include "chibicc.h"
 
+bool needed_rsp_align;
+int offset;
+
+void flip_rsp_align(bool is_push) {
+  if (is_push) {
+    offset += 8;
+  } else {
+    offset -= 8;
+  }
+  needed_rsp_align = !needed_rsp_align;
+}
+
 int labelseq = 0;
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -8,6 +20,7 @@ void gen_addr(Node *node) {
   if (node->kind == ND_VAR) {
     printf("  lea rax, [rbp-%d]\n", node->var->offset);
     printf("  push rax\n");
+    flip_rsp_align(true);
     return;
   }
 
@@ -25,6 +38,7 @@ void store() {
   printf("  pop rax\n");
   printf("  mov [rax], rdi\n");
   printf("  push rdi\n");
+  flip_rsp_align(false);
 }
 
 // Generate code for a given node.
@@ -32,10 +46,12 @@ void gen(Node *node) {
   switch (node->kind) {
   case ND_NUM:
     printf("  push %d\n", node->val);
+    flip_rsp_align(true);
     return;
   case ND_EXPR_STMT:
     gen(node->lhs);
     printf("  add rsp, 8\n"); // 式の評価結果としてスタックに一つの値が残っているのでポップしておく (rspを加算する)
+    flip_rsp_align(false);
     return;
   case ND_VAR: // 右辺に変数が現れた時にメモリからレジスタにコピーして1つの値にしてスタックにpush
     gen_addr(node);
@@ -51,6 +67,7 @@ void gen(Node *node) {
     if (node->els) {
       gen(node->cond);
       printf("  pop rax\n");
+      flip_rsp_align(false);
       printf("  cmp rax, 0\n");
       printf("  je  .Lelse%d\n", seq);
       gen(node->then);
@@ -61,6 +78,7 @@ void gen(Node *node) {
     } else {
       gen(node->cond);
       printf("  pop rax\n");
+      flip_rsp_align(false);
       printf("  cmp rax, 0\n");
       printf("  je  .Lend%d\n", seq);
       gen(node->then);
@@ -73,6 +91,7 @@ void gen(Node *node) {
     printf(".Lbegin%d:\n", seq);
     gen(node->cond);
     printf("  pop rax\n");
+    flip_rsp_align(false);
     printf("  cmp rax, 0\n");
     printf("  je  .Lend%d\n", seq);
     gen(node->then);
@@ -88,6 +107,7 @@ void gen(Node *node) {
     if (node->cond) {
       gen(node->cond);
       printf("  pop rax\n");
+      flip_rsp_align(false);
       printf("  cmp rax, 0\n");
       printf("  je  .Lend%d\n", seq);
     }
@@ -103,24 +123,36 @@ void gen(Node *node) {
       gen(n);
     return;
   case ND_FUNCALL: {
-    // TODO: RSP 16-byte alignment
     int nargs = 0;
     for (Node *arg = node->args; arg; arg = arg->next) {
       gen(arg);
       nargs++;
     }
 
-    for (int i = nargs - 1; i >= 0; i--)
+    for (int i = nargs - 1; i >= 0; i--) {
       printf("  pop %s\n", argreg[i]);
+      flip_rsp_align(false);
+    }
+
+    if (needed_rsp_align) {
+      // 16 byte alignment
+      printf("  sub rsp, 8\n");
+    }
 
     printf("  call %s\n", node->funcname);
+
+    if (needed_rsp_align) {
+      printf("  add rsp, 8\n");
+    }
     printf("  push rax\n"); // 関数の返り値をスタックに積む
+    flip_rsp_align(true);
     return;
   }
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
     printf("  jmp .Lreturn\n");
+    flip_rsp_align(false);
     return;
   }
 
@@ -172,6 +204,7 @@ void gen(Node *node) {
   }
 
   printf("  push rax\n");
+  flip_rsp_align(true);
 }
 
 void codegen(Program *prog) {
@@ -184,6 +217,13 @@ void codegen(Program *prog) {
   printf("  push rbp\n");
   printf("  mov rbp, rsp\n");
   printf("  sub rsp, %d\n", prog->stack_size);
+
+  offset = prog->stack_size;
+  if (prog->stack_size % 16 == 0) {
+    needed_rsp_align = false;
+  } else {
+    needed_rsp_align = true;
+  }
 
   // Emit code
   for (Node *node = prog->node; node; node = node->next)

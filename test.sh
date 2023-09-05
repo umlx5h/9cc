@@ -3,6 +3,8 @@
 make
 
 cat <<EOF | gcc -xc -c -o tmp2.o -
+#include <stdio.h>
+
 int ret3() { return 3; }
 int ret5() { return 5; }
 int add(int x, int y) { return x+y; }
@@ -11,6 +13,11 @@ int sub(int x, int y) { return x-y; }
 int add6(int a, int b, int c, int d, int e, int f) {
   return a+b+c+d+e+f;
 }
+
+void hello(void) {
+  printf("Hello world\n");
+}
+
 EOF
 
 assert() {
@@ -115,5 +122,9 @@ assert 2 'return sub(5, 3);'
 assert 21 'return add6(1, 2, 3, 4, 5, 6);'
 assert 14 'four = 4; sum = add(four, 3); return sum * 2;'
 assert 5 'return add(sub(5, 2), 2);'
+
+# check rsp alignment in function call
+assert 2 'hello(); return 2;'
+assert 2 'padding = 1; hello(); return 2;'
 
 echo OK

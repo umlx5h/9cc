@@ -129,4 +129,15 @@ assert 2 'main() { padding = 1; hello(); return 2; }'
 assert 5 'foo() { return 3 + 2; } main() { return foo(); }'
 assert 6 'foo() { a = 1; b = 2; return a + b; } main() { a = foo(); return a * 2; }'
 
+# function definition with up to 6 arguments
+assert 7 'my_add(i, j) { a = 2; return a + i + j; } main() { return my_add(2, 3); }'
+assert 21 'my_add6(a, b, c, d, e, f) { return a + b + c + d + e + f; } main() { return my_add6(1, 2, 3, 4, 5, 6); }'
+
+assert 7 'unused(i, j, k) { a = 2; return a + j + k; } main() { return unused(1, 2, 3); }'
+
+# recursive fibonacci 
+assert 1 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(1); }'
+assert 55 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(10); }'
+assert 233 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(13); }'
+
 echo OK

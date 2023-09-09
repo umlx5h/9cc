@@ -15,6 +15,7 @@ Var *find_var(Token *tok) {
 
 // program    = func func*
 // func       = ident "(" ")" "{" stmt* "}"
+// func       = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
 // stmt       =  "return" expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "while" "(" expr ")" stmt
@@ -99,27 +100,51 @@ Program *program() {
 }
 
 // func = ident "(" ")" "{" stmt* "}"
+// func = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
 Func *func() {
   Token *funcname = expect_ident();
+
   expect("(");
+
+  // function argument
+  Var head_var;
+  head_var.next = NULL;
+  Var *cur_var = &head_var;
+  Token *tok;
+  if (tok = consume_ident()) {
+    // 変数があった場合
+    do {
+      if (head_var.next) {
+        // 初回ループ以外に実行される
+        tok = consume_ident();
+      }
+      Var *arg = calloc(1, sizeof(Var));
+      arg->name = strndup(tok->str, tok->len);
+
+      cur_var->next = arg;
+      cur_var = cur_var->next;
+    } while (consume(","));
+  }
+
   expect(")");
   expect("{");
 
   locals = NULL;
 
-  Node head;
-  head.next = NULL;
-  Node *cur = &head;
+  Node head_stmt;
+  head_stmt.next = NULL;
+  Node *cur_stmt = &head_stmt;
 
   while (!consume("}")) {
-    cur->next = stmt();
-    cur = cur->next;
+    cur_stmt->next = stmt();
+    cur_stmt = cur_stmt->next;
   }
 
   Func *func = calloc(1, sizeof(Func));
-  func->node = head.next;
+  func->node = head_stmt.next;
   func->locals = locals;
   func->name = strndup(funcname->str, funcname->len);
+  func->args = head_var.next;
 
   // Assign offsets to local variables.
   int offset = 0;
@@ -128,6 +153,15 @@ Func *func() {
     var->offset = offset;
   }
   func->stack_size = offset;
+
+  // Assign offset to arguments.
+  for (Var *arg = func->args; arg; arg = arg->next) {
+    for (Var *var = func->locals; var ; var = var->next) {
+      if (strcmp(var->name, arg->name) == 0) {
+        arg->offset = var->offset;
+      }
+    }
+  }
 
   return func;
 }

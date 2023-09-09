@@ -107,6 +107,7 @@ struct Node {
 typedef struct Func {
   Node *node;
   Var *locals;
+  Var *args;
   int stack_size;
   char *name;
   struct Func *next;

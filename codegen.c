@@ -1,5 +1,6 @@
 #include "chibicc.h"
 
+char *cur_func;
 int labelseq = 0;
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 
@@ -136,7 +137,7 @@ void gen(Node *node) {
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  jmp .Lreturn\n");
+    printf("  jmp .Lreturn_%s\n", cur_func);
     return;
   }
 
@@ -194,20 +195,26 @@ void codegen(Program *prog) {
   // Print out the first half of assembly.
   printf(".intel_syntax noprefix\n");
   printf(".global main\n");
-  printf("main:\n");
 
-  // Prologue
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %d\n", prog->stack_size);
+  for (Func *func = prog->funcs; func; func = func->next) {
+    // function name label
+    printf("%s:\n", func->name);
 
-  // Emit code
-  for (Node *node = prog->node; node; node = node->next)
-    gen(node);
+    cur_func = func->name;
 
-  // Epilogue
-  printf(".Lreturn:\n");
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+    // Prologue
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %d\n", func->stack_size);
+
+    // Emit code
+    for (Node *node = func->node; node; node = node->next)
+      gen(node);
+
+    // Epilogue
+    printf(".Lreturn_%s:\n", cur_func);
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+  }
 }

@@ -13,7 +13,8 @@ Var *find_var(Token *tok) {
 
 // 生成規則 (EBNF)
 
-// program    = stmt*
+// program    = func func*
+// func       = ident "(" ")" "{" stmt* "}"
 // stmt       =  "return" expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "while" "(" expr ")" stmt
@@ -69,6 +70,7 @@ Var *push_var(char *name) {
   return var;
 }
 
+Func *func();
 Node *stmt();
 Node *expr();
 Node *assign();
@@ -79,23 +81,55 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-// program = stmt*
+// program = func func*
 Program *program() {
+  // 最低1つの関数はあるはず
+  Func *head = func();
+  Func *cur = head;
+
+  while (!at_eof()) {
+    cur->next = func();
+    cur = cur->next;
+  }
+
+  Program *prog = calloc(1, sizeof(Program));
+  prog->funcs = head;
+
+  return prog;
+}
+
+// func = ident "(" ")" "{" stmt* "}"
+Func *func() {
+  Token *funcname = expect_ident();
+  expect("(");
+  expect(")");
+  expect("{");
+
   locals = NULL;
 
   Node head;
   head.next = NULL;
   Node *cur = &head;
 
-  while (!at_eof()) {
+  while (!consume("}")) {
     cur->next = stmt();
     cur = cur->next;
   }
 
-  Program *prog = calloc(1, sizeof(Program));
-  prog->node = head.next;
-  prog->locals = locals;
-  return prog;
+  Func *func = calloc(1, sizeof(Func));
+  func->node = head.next;
+  func->locals = locals;
+  func->name = strndup(funcname->str, funcname->len);
+
+  // Assign offsets to local variables.
+  int offset = 0;
+  for (Var *var = func->locals; var; var = var->next) {
+    offset += 8;
+    var->offset = offset;
+  }
+  func->stack_size = offset;
+
+  return func;
 }
 
 Node *read_expr_stmt() {

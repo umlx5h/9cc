@@ -57,6 +57,14 @@ Token *consume_ident() {
   return t;
 }
 
+Token *expect_ident() {
+  if (token->kind != TK_IDENT)
+    error_at(token->str, "expected a identifier");
+  Token *t = token;
+  token = token->next;
+  return t;
+}
+
 // Ensure that the current token is `op`.
 void expect(char *op) {
   if (token->kind != TK_RESERVED || strlen(op) != token->len ||

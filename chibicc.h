@@ -32,6 +32,7 @@ void error_at(char *loc, char *fmt, ...);
 bool consume(char *op);
 char *strndup(char *p, int len);
 Token *consume_ident();
+Token *expect_ident();
 void expect(char *op);
 int expect_number();
 bool at_eof();
@@ -103,10 +104,16 @@ struct Node {
   int val;       // Used if kind == ND_NUM
 };
 
-typedef struct {
+typedef struct Func {
   Node *node;
   Var *locals;
   int stack_size;
+  char *name;
+  struct Func *next;
+} Func;
+
+typedef struct {
+  Func *funcs;
 } Program;
 
 Program *program();

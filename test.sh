@@ -117,7 +117,7 @@ assert 6 'main() { a = ret3(); return a * 2; }'
 # function call with argument (1-6)
 assert 8 'main() { return add(3, 5); }'
 assert 2 'main() { return sub(5, 3); }'
-assert 21 'main() { return add6(1, 2, 3, 4, 5, 6); }'
+assert 21 'main() { return add6(1,2,3,4,5,6); }'
 assert 14 'main() { four = 4; sum = add(four, 3); return sum * 2; }'
 assert 5 'main() { return add(sub(5, 2), 2); }'
 
@@ -126,7 +126,7 @@ assert 2 'main() { hello(); return 2; }'
 assert 2 'main() { padding = 1; hello(); return 2; }'
 
 # function definition with 0 argument
-assert 5 'foo() { return 3 + 2; } main() { return foo(); }'
+assert 5 'main() { return foo(); } foo() { return 3 + 2; }'
 assert 6 'foo() { a = 1; b = 2; return a + b; } main() { a = foo(); return a * 2; }'
 
 # function definition with up to 6 arguments

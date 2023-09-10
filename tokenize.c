@@ -1,9 +1,5 @@
 #include "chibicc.h"
 
-//
-// Tokenizer
-//
-
 // Input program
 char *user_input;
 // Current token
@@ -57,14 +53,6 @@ Token *consume_ident() {
   return t;
 }
 
-Token *expect_ident() {
-  if (token->kind != TK_IDENT)
-    error_at(token->str, "expected a identifier");
-  Token *t = token;
-  token = token->next;
-  return t;
-}
-
 // Ensure that the current token is `op`.
 void expect(char *op) {
   if (token->kind != TK_RESERVED || strlen(op) != token->len ||
@@ -80,6 +68,15 @@ int expect_number() {
   int val = token->val;
   token = token->next;
   return val;
+}
+
+// Ensure that the current token is TK_IDENT.
+char *expect_ident() {
+  if (token->kind != TK_IDENT)
+    error_at(token->str, "expected an identifier");
+  char *s = strndup(token->str, token->len);
+  token = token->next;
+  return s;
 }
 
 bool at_eof() {

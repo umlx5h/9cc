@@ -32,9 +32,9 @@ void error_at(char *loc, char *fmt, ...);
 bool consume(char *op);
 char *strndup(char *p, int len);
 Token *consume_ident();
-Token *expect_ident();
 void expect(char *op);
 int expect_number();
+char *expect_ident();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 Token *tokenize();
@@ -49,9 +49,14 @@ extern Token *token; // Current token
 // Local variable
 typedef struct Var Var;
 struct Var {
-  Var *next;
   char *name; // Variable name
   int offset; // Offset from RBP
+};
+
+typedef struct VarList VarList;
+struct VarList {
+  VarList *next;
+  Var *var;
 };
 
 // 抽象構文木のノードの種類
@@ -78,7 +83,6 @@ typedef enum {
 
 // AST node type (抽象構文木のノードの型)
 typedef struct Node Node;
-
 struct Node {
   NodeKind kind; // Node kind
   Node *next;    // Next node
@@ -104,23 +108,21 @@ struct Node {
   int val;       // Used if kind == ND_NUM
 };
 
-typedef struct Func {
-  Node *node;
-  Var *locals;
-  Var *args;
-  int stack_size;
+typedef struct Function Function;
+struct Function {
+  Function *next;
   char *name;
-  struct Func *next;
-} Func;
+  VarList *params; // localsの部分集合になっていて引数だけが同じインスタンスとして入る
 
-typedef struct {
-  Func *funcs;
-} Program;
+  Node *node;
+  VarList *locals; // ローカル変数と引数の変数を含む
+  int stack_size;
+};
 
-Program *program();
+Function *program();
 
 //
 // codegen.c
 //
 
-void codegen(Program *prog);
+void codegen(Function *prog);

@@ -1,21 +1,23 @@
 #include "chibicc.h"
 
 // ローカル変数
-Var *locals;
+VarList *locals;
 
 // Find a local variable by name.
 Var *find_var(Token *tok) {
-  for (Var *var = locals; var; var = var->next)
+  for (VarList *vl = locals; vl; vl = vl->next) {
+    Var *var = vl->var;
     if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
       return var;
+  }
   return NULL;
 }
 
 // 生成規則 (EBNF)
 
-// program    = func func*
-// func       = ident "(" ")" "{" stmt* "}"
-// func       = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
+// program    = function*
+// function = ident "(" params? ")" "{" stmt* "}"
+// params   = ident ("," ident)*
 // stmt       =  "return" expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "while" "(" expr ")" stmt
@@ -65,13 +67,16 @@ Node *new_var(Var *var) {
 
 Var *push_var(char *name) {
   Var *var = calloc(1, sizeof(Var));
-  var->next = locals;
   var->name = name;
-  locals = var;
+
+  VarList *vl = calloc(1, sizeof(VarList));
+  vl->var = var;
+  vl->next = locals;
+  locals = vl;
   return var;
 }
 
-Func *func();
+Function *function();
 Node *stmt();
 Node *expr();
 Node *assign();
@@ -82,88 +87,59 @@ Node *mul();
 Node *unary();
 Node *primary();
 
-// program = func func*
-Program *program() {
-  // 最低1つの関数はあるはず
-  Func *head = func();
-  Func *cur = head;
+// program = function*
+Function *program() {
+  Function head;
+  head.next = NULL;
+  Function *cur = &head;
 
   while (!at_eof()) {
-    cur->next = func();
+    cur->next = function();
+    cur = cur->next;
+  }
+  return head.next;
+}
+
+VarList *read_func_params() {
+  if (consume(")"))
+    return NULL;
+
+  VarList *head = calloc(1, sizeof(VarList));
+  head->var = push_var(expect_ident());
+  VarList *cur = head;
+
+  while (!consume(")")) {
+    expect(",");
+    cur->next = calloc(1, sizeof(VarList));
+    cur->next->var = push_var(expect_ident());
     cur = cur->next;
   }
 
-  Program *prog = calloc(1, sizeof(Program));
-  prog->funcs = head;
-
-  return prog;
+  return head;
 }
 
-// func = ident "(" ")" "{" stmt* "}"
-// func = ident "(" (ident ("," ident)*)? ")" "{" stmt* "}"
-Func *func() {
-  Token *funcname = expect_ident();
-
-  expect("(");
-
-  // function argument
-  Var head_var;
-  head_var.next = NULL;
-  Var *cur_var = &head_var;
-  Token *tok;
-  if (tok = consume_ident()) {
-    // 変数があった場合
-    do {
-      if (head_var.next) {
-        // 初回ループ以外に実行される
-        tok = consume_ident();
-      }
-      Var *arg = calloc(1, sizeof(Var));
-      arg->name = strndup(tok->str, tok->len);
-
-      cur_var->next = arg;
-      cur_var = cur_var->next;
-    } while (consume(","));
-  }
-
-  expect(")");
-  expect("{");
-
+// function = ident "(" params? ")" "{" stmt* "}"
+// params   = ident ("," ident)*
+Function *function() {
   locals = NULL;
 
-  Node head_stmt;
-  head_stmt.next = NULL;
-  Node *cur_stmt = &head_stmt;
+  Function *fn = calloc(1, sizeof(Function));
+  fn->name = expect_ident();
+  expect("(");
+  fn->params = read_func_params();
+  expect("{");
 
+  Node head;
+  head.next = NULL;
+  Node *cur = &head;
   while (!consume("}")) {
-    cur_stmt->next = stmt();
-    cur_stmt = cur_stmt->next;
+    cur->next = stmt();
+    cur = cur->next;
   }
 
-  Func *func = calloc(1, sizeof(Func));
-  func->node = head_stmt.next;
-  func->locals = locals;
-  func->name = strndup(funcname->str, funcname->len);
-  func->args = head_var.next;
-
-  // Assign offsets to local variables.
-  int offset = 0;
-  for (Var *var = func->locals; var; var = var->next) {
-    offset += 8;
-    var->offset = offset;
-  }
-  func->stack_size = offset;
-
-  // Assign offset to arguments.
-  for (Var *arg = func->args; arg; arg = arg->next) {
-    for (Var *var = func->locals; var ; var = var->next) {
-      if (strcmp(var->name, arg->name) == 0) {
-        arg->offset = var->offset;
-      }
-    }
-  }
-
-  return func;
+  fn->node = head.next;
+  fn->locals = locals;
+  return fn;
 }
 
 Node *read_expr_stmt() {

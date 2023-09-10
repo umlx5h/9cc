@@ -1,8 +1,9 @@
 #include "chibicc.h"
 
-char *cur_func;
-int labelseq = 0;
 char *argreg[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
+
+int labelseq = 0;
+char *funcname;
 
 // Pushes the given node's address to the stack.
 void gen_addr(Node *node) {
@@ -137,7 +138,7 @@ void gen(Node *node) {
   case ND_RETURN:
     gen(node->lhs);
     printf("  pop rax\n");
-    printf("  jmp .Lreturn_%s\n", cur_func);
+    printf("  jmp .Lreturn.%s\n", funcname);
     return;
   }
 
@@ -191,37 +192,32 @@ void gen(Node *node) {
   printf("  push rax\n");
 }
 
-void codegen(Program *prog) {
-  // Print out the first half of assembly.
+void codegen(Function *prog) {
   printf(".intel_syntax noprefix\n");
-  printf(".global main\n");
 
-  for (Func *func = prog->funcs; func; func = func->next) {
-    // function name label
-    printf("%s:\n", func->name);
-
-    cur_func = func->name;
+  for (Function *fn = prog; fn; fn = fn->next) {
+    printf(".global %s\n", fn->name);
+    printf("%s:\n", fn->name);
+    funcname = fn->name;
 
     // Prologue
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
-    printf("  sub rsp, %d\n", func->stack_size);
+    printf("  sub rsp, %d\n", fn->stack_size);
 
-    // Copy argument register to local stack variables.
+    // Push arguments to the stack
     int i = 0;
-    for (Var *var = func->args; var && i < 6; var = var->next) {
-      if (var->offset > 0) {
-        printf("  mov [rbp-%d], %s\n", var->offset, argreg[i]);
-      }
-      i++;
+    for (VarList *vl = fn->params; vl; vl = vl->next) {
+      Var *var = vl->var;
+      printf("  mov [rbp-%d], %s\n", var->offset, argreg[i++]);
     }
 
     // Emit code
-    for (Node *node = func->node; node; node = node->next)
+    for (Node *node = fn->node; node; node = node->next)
       gen(node);
 
     // Epilogue
-    printf(".Lreturn_%s:\n", cur_func);
+    printf(".Lreturn.%s:\n", funcname);
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");

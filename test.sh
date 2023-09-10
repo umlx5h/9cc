@@ -140,4 +140,9 @@ assert 1 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main()
 assert 55 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(10); }'
 assert 233 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(13); }'
 
+# unary &, *
+assert 3 'main() { x = 3; y = &x; return *y; }'
+assert 3 'main() { x = 3; y = 5; z = &y + 8; return *z; }'
+assert 8 'main() { x = 3; y = &x; return *y + 5; }'
+
 echo OK

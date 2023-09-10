@@ -43,6 +43,15 @@ void gen(Node *node) {
     gen_addr(node);
     load();
     return;
+  case ND_ADDR:
+    gen_addr(node->lhs);
+    return;
+  case ND_DEREF:
+    gen(node->lhs);
+    printf("  pop rax\n");
+    printf("  mov rax, [rax]\n");
+    printf("  push rax\n");
+    return;
   case ND_ASSIGN:
     gen_addr(node->lhs);
     gen(node->rhs);

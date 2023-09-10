@@ -78,6 +78,8 @@ typedef enum {
   ND_FUNCALL,   // Function call
   ND_EXPR_STMT, // Expression statement
   ND_VAR,       // Variable
+  ND_ADDR,      // &
+  ND_DEREF,     // *
   ND_NUM,       // Integer
 } NodeKind;
 

@@ -141,8 +141,12 @@ assert 55 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main(
 assert 233 'fib(n) { if (n < 2) { return n; } return fib(n-2) + fib(n-1); } main() { return fib(13); }'
 
 # unary &, *
-assert 3 'main() { x = 3; y = &x; return *y; }'
-assert 3 'main() { x = 3; y = 5; z = &y + 8; return *z; }'
-assert 8 'main() { x = 3; y = &x; return *y + 5; }'
+assert 3 'main() { x=3; *&x; }'
+assert 3 'main() { x=3; y=&x; z=&y; return **z; }'
+assert 5 'main() { x=3; y=5; return *(&x+8); }'
+assert 3 'main() { x=3; y=5; return *(&y-8); }'
+assert 5 'main() { x=3; y=&x; *y=5; return x; }'
+assert 7 'main() { x=3; y=5; *(&x+8)=7; return y; }'
+assert 7 'main() { x=3; y=5; *(&y-8)=7; return x; }'
 
 echo OK

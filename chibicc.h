@@ -71,6 +71,8 @@ typedef enum {
   ND_LT,        // <
   ND_LE,        // <=
   ND_ASSIGN,    // =
+  ND_ADDR,      // unary &
+  ND_DEREF,     // unary *
   ND_RETURN,    // "return"
   ND_IF,        // "if"
   ND_WHILE,     // "while"
@@ -79,8 +81,6 @@ typedef enum {
   ND_FUNCALL,   // Function call
   ND_EXPR_STMT, // Expression statement
   ND_VAR,       // Variable
-  ND_ADDR,      // &
-  ND_DEREF,     // *
   ND_NUM,       // Integer
 } NodeKind;
 

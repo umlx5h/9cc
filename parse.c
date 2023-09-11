@@ -2,11 +2,10 @@
 
 // ローカル変数
 VarList *locals;
-static VarList head_locals;
 
 // Find a local variable by name.
 Var *find_var(Token *tok) {
-  for (VarList *vl = head_locals.next; vl; vl = vl->next) {
+  for (VarList *vl = locals; vl; vl = vl->next) {
     Var *var = vl->var;
     if (strlen(var->name) == tok->len && !memcmp(tok->str, var->name, tok->len))
       return var;
@@ -31,8 +30,7 @@ Var *find_var(Token *tok) {
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
 // add        = mul ("+" mul | "-" mul)*
 // mul        = unary ("*" unary | "/" unary)*
-// unary      = ("+" | "-")? unary
-//            = ("*" | "&") unary
+// unary      = ("+" | "-" | "*" | "&")? unary
 //            | primary
 // primary    = "(" expr ")" | ident func-args? | num
 // func-args = "(" (assign ("," assign)*)? ")"
@@ -75,13 +73,8 @@ Var *push_var(char *name) {
 
   VarList *vl = calloc(1, sizeof(VarList));
   vl->var = var;
-  if (!locals) {
-    locals = vl;
-    head_locals.next = locals;
-  } else {
-    locals->next = vl;
-    locals = locals->next;
-  }
+  vl->next = locals;
+  locals = vl;
   return var;
 }
 
@@ -146,7 +139,6 @@ Function *function() {
     cur = cur->next;
   }
 
-  locals = head_locals.next;
   fn->node = head.next;
   fn->locals = locals;
   return fn;
@@ -308,20 +300,18 @@ Node *mul() {
   }
 }
 
-// TODO: +と-だけ?なのはなぜ？
-// unary = ("+" | "-")? unary
-//       | ("*" | "&") unary
+// unary = ("+" | "-" | "*" | "&")? unary
 //       | primary
 Node *unary() {
   Token *tok;
-  if (tok = consume("+"))
+  if (consume("+"))
     return unary();
   if (tok = consume("-"))
     return new_binary(ND_SUB, new_num(0, tok), unary(), tok);
-  if (tok = consume("*"))
-    return new_unary(ND_DEREF, unary(), tok);
   if (tok = consume("&"))
     return new_unary(ND_ADDR, unary(), tok);
+  if (tok = consume("*"))
+    return new_unary(ND_DEREF, unary(), tok);
 
   return primary();
 }

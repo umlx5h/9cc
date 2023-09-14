@@ -36,6 +36,7 @@ Token *consume_ident();
 void expect(char *op);
 int expect_number();
 char *expect_ident();
+Token *expect_ident_tok();
 bool at_eof();
 Token *new_token(TokenKind kind, Token *cur, char *str, int len);
 Token *tokenize();
@@ -82,6 +83,7 @@ typedef enum {
   ND_EXPR_STMT, // Expression statement
   ND_VAR,       // Variable
   ND_NUM,       // Integer
+  ND_NULL,      // do nothing
 } NodeKind;
 
 // AST node type (抽象構文木のノードの型)

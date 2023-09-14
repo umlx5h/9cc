@@ -16,8 +16,8 @@ Var *find_var(Token *tok) {
 // 生成規則 (EBNF)
 
 // program    = function*
-// function = ident "(" params? ")" "{" stmt* "}"
-// params   = ident ("," ident)*
+// function = int ident "(" params? ")" "{" stmt* "}"
+// params   = int ident ("," int ident)*
 // stmt       =  "return" expr ";"
 //            | "if" "(" expr ")" stmt ("else" stmt)?
 //            | "while" "(" expr ")" stmt
@@ -32,7 +32,11 @@ Var *find_var(Token *tok) {
 // mul        = unary ("*" unary | "/" unary)*
 // unary      = ("+" | "-" | "*" | "&")? unary
 //            | primary
-// primary    = "(" expr ")" | ident func-args? | num
+// primary    = "(" expr ")"
+//            | ident func-args?
+//            | int ident
+//            | int ident = assign
+//            | num
 // func-args = "(" (assign ("," assign)*)? ")"
 
 Node *new_node(NodeKind kind, Token *tok) {
@@ -106,12 +110,14 @@ VarList *read_func_params() {
   if (consume(")"))
     return NULL;
 
+  expect("int");
   VarList *head = calloc(1, sizeof(VarList));
   head->var = push_var(expect_ident());
   VarList *cur = head;
 
   while (!consume(")")) {
     expect(",");
+    expect("int");
     cur->next = calloc(1, sizeof(VarList));
     cur->next->var = push_var(expect_ident());
     cur = cur->next;
@@ -120,12 +126,13 @@ VarList *read_func_params() {
   return head;
 }
 
-// function = ident "(" params? ")" "{" stmt* "}"
-// params   = ident ("," ident)*
+// function = int ident "(" params? ")" "{" stmt* "}"
+// params   = int ident ("," int ident)*
 Function *function() {
   locals = NULL;
 
   Function *fn = calloc(1, sizeof(Function));
+  expect("int");
   fn->name = expect_ident();
   expect("(");
   fn->params = read_func_params();
@@ -331,7 +338,11 @@ Node *func_args() {
   return head;
 }
 
-// primary = "(" expr ")" | ident func-args? | num
+// primary    = "(" expr ")"
+//            | ident func-args?
+//            | int ident
+//            | int ident = primary
+//            | num
 Node *primary() {
   // 次のトークンが"("なら、"(" expr ")"のはず
   if (consume("(")) {
@@ -341,6 +352,29 @@ Node *primary() {
   }
 
   Token *tok;
+  if (consume("int")) {
+    // variable declaration
+    tok = expect_ident_tok();
+    if (find_var(tok))
+      error_tok(tok, "already declared variable");
+    
+    // ローカル変数を追加
+    Var *var = push_var(strndup(tok->str, tok->len));
+    Node *lvar = new_var(var, tok);
+
+    // 初期化式だった場合 (int X = 1)
+    // TODO: このprimary()の配置でいいのか？
+    if (tok = consume("=")) {
+      // TODO: equalityとassignどっちがいいのか
+      Node *node = new_binary(ND_ASSIGN, lvar, equality(), tok);
+
+      return node;
+    }
+
+    // 変数定義だけなので変数を追加するだけでコード生成は何もしない
+    return new_node(ND_NULL, tok);
+  }
+
   if (tok = consume_ident()) {
     if (consume("(")) {
       // function call
@@ -352,7 +386,7 @@ Node *primary() {
     // variable
     Var *var = find_var(tok);
     if (!var)
-      var = push_var(strndup(tok->str, tok->len));
+      error_tok(tok, "not declared variable");
     return new_var(var, tok);
   }
 

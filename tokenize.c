@@ -96,6 +96,14 @@ char *expect_ident() {
   return s;
 }
 
+Token *expect_ident_tok() {
+  if (token->kind != TK_IDENT)
+    error_tok(token, "expected an identifier");
+  Token *t = token;
+  token = token->next;
+  return t;
+}
+
 bool at_eof() {
   return token->kind == TK_EOF;
 }
@@ -124,7 +132,7 @@ bool is_alnum(char c) {
 
 char *starts_with_reserved(char *p) {
   // Keyword
-  static char *kw[] = {"return", "if", "else", "while", "for"};
+  static char *kw[] = {"return", "if", "else", "while", "for", "int"};
 
   for (int i = 0; i < sizeof(kw) / sizeof(*kw); i++) {
     int len = strlen(kw[i]);
